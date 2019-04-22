@@ -13,7 +13,7 @@
 %   * T1, T2: estimation window size and out-of-sample period
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function [avg_utility ,avg_return, std_deviation ,sharpe_ratio] = portfolio_assessment(T1,gamma,with_transaction_cost)
+function [avg_utility ,avg_return, std_deviation ,sharpe_ratio, avg_utility_ML ,avg_return_ML, std_deviation_ML ,sharpe_ratio_ML, avg_utility_1_over_n ,avg_return_1_over_n, std_deviation_1_over_n ,sharpe_ratio_1_over_n] = portfolio_assessment(T1,gamma,with_transaction_cost)
 
 % 0. define start/end date and other parameters 
 smonth = 197601;
@@ -88,27 +88,43 @@ end
 
 % 6. utility
 utility = zeros(T2,1); % utility of portfoilo combination(5)
+utility_ML = zeros(T2,1); % utility of weight_scaled_ML
+utility_1_over_n = zeros(T2,1); % utility of portfoilo combination(5)
 for t=1:T2
     utility(t) = rf2(t) + general_mean'*weight_comb(:,:,t) - gamma/2*weight_comb(:,:,t)'*general_covarience*weight_comb(:,:,t);
+    utility_ML(t) = rf2(t) + general_mean'*weight_scaled_ML(:,:,t) - gamma/2*weight_scaled_ML(:,:,t)'*general_covarience*weight_scaled_ML(:,:,t);
+    utility_1_over_n(t) = rf2(t) + general_mean'*weight_1_over_n - gamma/2*weight_1_over_n'*general_covarience*weight_1_over_n;
 end
 avg_utility = mean(utility);
-
+avg_utility_ML = mean(utility_ML);
+avg_utility_1_over_n = mean(utility_1_over_n);
 
 % 7. return
 portfolio_return = zeros(T2,1);
+portfolio_return_ML = zeros(T2,1);
+portfolio_return_1_over_n = zeros(T2,1);
 for t=1:T2
     portfolio_return(t) = rf2(t) + weight_comb(:,:,t)'*r2(t,:)';
+    portfolio_return_ML(t) = rf2(t) + weight_scaled_ML(:,:,t)'*r2(t,:)';
+    portfolio_return_1_over_n(t) = rf2(t) + weight_1_over_n'*r2(t,:)';
 end
-portfolio_return = portfolio_return - transaction_cost;
+portfolio_return = portfolio_return - delta*transaction_cost;
+portfolio_return_ML = portfolio_return_ML - transaction_cost;
 avg_return = mean(portfolio_return);
+avg_return_ML = mean(portfolio_return_ML);
+avg_return_1_over_n = mean(portfolio_return_1_over_n);
 
 
 % 8. standard deviation
 std_deviation = std(portfolio_return);
+std_deviation_ML = std(portfolio_return_ML);
+std_deviation_1_over_n = std(portfolio_return_1_over_n);
 
 
 % 9. sharpe ratio
 sharpe_ratio = mean(portfolio_return) / std_deviation;
+sharpe_ratio_ML = mean(portfolio_return_ML) / std_deviation_ML;
+sharpe_ratio_1_over_n = mean(portfolio_return) / std_deviation_1_over_n;
 
 end
 
