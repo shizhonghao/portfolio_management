@@ -50,16 +50,6 @@ for t=1:T2
     weight_scaled_ML(:,:,t) = 1/gamma * inv(sample_covariance(:,:,t))*sample_mean(:,t);
 end
 
-% consider if model is ideal or has transaction cost
-transaction_cost = zeros(T2,1); % will be subtracted from each portfolio return. return
-if with_transaction_cost
-    for t=2:T2
-        dw = weight_scaled_ML(:,:,t) - weight_scaled_ML(:,:,t-1); %size(25,1)
-        cost = transaction_cost_ratio * abs(dw);
-        transaction_cost(t) = sum(cost);
-    end
-end
-
 weight_1_over_n = ones(N,1); % weight_e, the weight of 1/N. size(1,25)
 weight_1_over_n = weight_1_over_n / N;
 
@@ -78,11 +68,41 @@ end
 pi_2 = mean(pi_2_list);
 delta = pi_1/(pi_1+pi_2); % combination coefficient
 
+pi_1_hat = zeros(T2,1);
+pi_2_hat = zeros(T2,1);
+delta_hat = zeros(T2,1);
+theta_square = zeros(T2,1);
+c1 = (T1-2)*(T1-N-2)/((T1-N-1)*(T1-N-4));
+for t=1:T2
+    theta_square(t,:) = sample_mean(:,t)'*sample_covariance(:,:,t)*sample_mean(:,t);
+    pi_1_hat(t,:) = weight_1_over_n'*sample_covariance(:,:,t)*weight_1_over_n - 2/gamma*weight_1_over_n'*sample_mean(:,t) + 1/gamma^2*theta_square(t,:);
+    pi_2_hat(t,:) = 1/gamma^2*(c1-1)*theta_square(t,:) + c1/gamma^2*N/T1;
+    delta_hat(t,:) = pi_1_hat(t,:)/(pi_1_hat(t,:)+pi_2_hat(t,:));
+end
 
 % 5. calculate portfoilo combination 
 weight_comb = zeros(N,1,T2); % portfoilo combination, size(25,1,T2)
 for t=1:T2
-    weight_comb(:,:,t) = (1-delta)*weight_1_over_n + delta*weight_scaled_ML(:,:,t); % portfoilo combination, w_c_hat, size(25,1,T2)
+    %weight_comb(:,:,t) = (1-delta)*weight_1_over_n + delta*weight_scaled_ML(:,:,t); % portfoilo combination, w_c_hat, size(25,1,T2)
+    weight_comb(:,:,t) = (1-delta_hat(t))*weight_1_over_n + delta_hat(t)*weight_scaled_ML(:,:,t); % portfoilo combination, w_c_hat, size(25,1,T2)
+end
+
+% consider if model is ideal or has transaction cost
+transaction_cost = zeros(T2,1); % will be subtracted from each portfolio return. return
+transaction_cost_ML = zeros(T2,1); % will be subtracted from each portfolio return. return
+if with_transaction_cost
+    for t=2:T2
+        %dw = weight_scaled_ML(:,:,t) - weight_scaled_ML(:,:,t-1); %size(25,1)
+        %cost = transaction_cost_ratio * abs(dw);
+        %transaction_cost(t) = sum(cost);
+        dw = weight_scaled_ML(:,:,t) - weight_scaled_ML(:,:,t-1); %size(25,1)
+        cost = transaction_cost_ratio * abs(dw);
+        transaction_cost_ML(t) = sum(cost);
+        
+        dw = weight_comb(:,:,t) - weight_comb(:,:,t-1); %size(25,1)
+        cost = transaction_cost_ratio * abs(dw);
+        transaction_cost(t) = sum(cost);
+    end
 end
 
 
@@ -108,8 +128,9 @@ for t=1:T2
     portfolio_return_ML(t) = rf2(t) + weight_scaled_ML(:,:,t)'*r2(t,:)';
     portfolio_return_1_over_n(t) = rf2(t) + weight_1_over_n'*r2(t,:)';
 end
-portfolio_return = portfolio_return - delta*transaction_cost;
-portfolio_return_ML = portfolio_return_ML - transaction_cost;
+%portfolio_return = portfolio_return - delta*transaction_cost;
+portfolio_return = portfolio_return - transaction_cost;
+portfolio_return_ML = portfolio_return_ML - transaction_cost_ML;
 avg_return = mean(portfolio_return);
 avg_return_ML = mean(portfolio_return_ML);
 avg_return_1_over_n = mean(portfolio_return_1_over_n);
