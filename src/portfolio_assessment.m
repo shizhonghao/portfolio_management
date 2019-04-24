@@ -33,7 +33,7 @@ for t = 1:T2
     sample_covariance(:,:,t) = cov(r(t:t+T1-1,:)); 
 end
 
-% general covarience and mean for all T1+T2 values
+% general covarience and mean for all T2 values
 general_covarience = cov(r2); % sigma, size(25,25)
 general_mean = mean(r2)'; % mu, size(25,1)
 
@@ -90,6 +90,12 @@ end
 % consider if model is ideal or has transaction cost
 transaction_cost = zeros(T2,1); % will be subtracted from each portfolio return. return
 transaction_cost_ML = zeros(T2,1); % will be subtracted from each portfolio return. return
+r2_ML = r2;
+r2_true = r2;
+general_covarience_ML = general_covarience; % sigma, size(25,25)
+general_mean_ML = general_mean; % mu, size(25,1)
+general_covarience_true = general_covarience; % sigma, size(25,25)
+general_mean_true = general_mean; % mu, size(25,1)
 if with_transaction_cost
     for t=2:T2
         %dw = weight_scaled_ML(:,:,t) - weight_scaled_ML(:,:,t-1); %size(25,1)
@@ -98,11 +104,17 @@ if with_transaction_cost
         dw = weight_scaled_ML(:,:,t) - weight_scaled_ML(:,:,t-1); %size(25,1)
         cost = transaction_cost_ratio * abs(dw);
         transaction_cost_ML(t) = sum(cost);
+        r2_ML(t,:) = r2_ML(t,:) - cost';
         
         dw = weight_comb(:,:,t) - weight_comb(:,:,t-1); %size(25,1)
         cost = transaction_cost_ratio * abs(dw);
         transaction_cost(t) = sum(cost);
+        r2_true(t,:) = r2_true(t,:) - cost';
     end
+    general_covarience_ML = cov(r2_ML); % sigma, size(25,25)
+    general_mean_ML = mean(r2_ML)'; % mu, size(25,1)
+    general_covarience_true = cov(r2_true); % sigma, size(25,25)
+    general_mean_true = mean(r2_true)'; % mu, size(25,1)
 end
 
 
@@ -111,8 +123,8 @@ utility = zeros(T2,1); % utility of portfoilo combination(5)
 utility_ML = zeros(T2,1); % utility of weight_scaled_ML
 utility_1_over_n = zeros(T2,1); % utility of portfoilo combination(5)
 for t=1:T2
-    utility(t) = rf2(t) + general_mean'*weight_comb(:,:,t) - gamma/2*weight_comb(:,:,t)'*general_covarience*weight_comb(:,:,t);
-    utility_ML(t) = rf2(t) + general_mean'*weight_scaled_ML(:,:,t) - gamma/2*weight_scaled_ML(:,:,t)'*general_covarience*weight_scaled_ML(:,:,t);
+    utility(t) = rf2(t) + general_mean_true'*weight_comb(:,:,t) - gamma/2*weight_comb(:,:,t)'*general_covarience_true*weight_comb(:,:,t);
+    utility_ML(t) = rf2(t) + general_mean_ML'*weight_scaled_ML(:,:,t) - gamma/2*weight_scaled_ML(:,:,t)'*general_covarience_ML*weight_scaled_ML(:,:,t);
     utility_1_over_n(t) = rf2(t) + general_mean'*weight_1_over_n - gamma/2*weight_1_over_n'*general_covarience*weight_1_over_n;
 end
 avg_utility = mean(utility);
@@ -124,13 +136,13 @@ portfolio_return = zeros(T2,1);
 portfolio_return_ML = zeros(T2,1);
 portfolio_return_1_over_n = zeros(T2,1);
 for t=1:T2
-    portfolio_return(t) = rf2(t) + weight_comb(:,:,t)'*r2(t,:)';
-    portfolio_return_ML(t) = rf2(t) + weight_scaled_ML(:,:,t)'*r2(t,:)';
+    portfolio_return(t) = rf2(t) + weight_comb(:,:,t)'*r2_true(t,:)';
+    portfolio_return_ML(t) = rf2(t) + weight_scaled_ML(:,:,t)'*r2_ML(t,:)';
     portfolio_return_1_over_n(t) = rf2(t) + weight_1_over_n'*r2(t,:)';
 end
 %portfolio_return = portfolio_return - delta*transaction_cost;
-portfolio_return = portfolio_return - transaction_cost;
-portfolio_return_ML = portfolio_return_ML - transaction_cost_ML;
+%portfolio_return = portfolio_return - transaction_cost;
+%portfolio_return_ML = portfolio_return_ML - transaction_cost_ML;
 avg_return = mean(portfolio_return);
 avg_return_ML = mean(portfolio_return_ML);
 avg_return_1_over_n = mean(portfolio_return_1_over_n);
