@@ -34,8 +34,8 @@ for t = 1:T2
 end
 
 % general covarience and mean for all T1+T2 values
-general_covarience = cov(r); % sigma, size(25,25)
-general_mean = mean(r)'; % mu, size(25,1)
+general_covarience = cov(r2); % sigma, size(25,25)
+general_mean = mean(r2)'; % mu, size(25,1)
 
 
 % 2. sigma_tilde = (T/(T-N-2))sigma_hat
@@ -83,7 +83,7 @@ end
 % 5. calculate portfoilo combination 
 weight_comb = zeros(N,1,T2); % portfoilo combination, size(25,1,T2)
 for t=1:T2
-    %weight_comb(:,:,t) = (1-delta)*weight_1_over_n + delta*weight_scaled_ML(:,:,t); % portfoilo combination, w_c_hat, size(25,1,T2)
+    %weight_comb(:,:,t) = (1-delta)*weight_1_over_n +  delta*weight_scaled_ML(:,:,t); % portfoilo combination, w_c_hat, size(25,1,T2)
     weight_comb(:,:,t) = (1-delta_hat(t))*weight_1_over_n + delta_hat(t)*weight_scaled_ML(:,:,t); % portfoilo combination, w_c_hat, size(25,1,T2)
 end
 
@@ -145,7 +145,7 @@ std_deviation_1_over_n = std(portfolio_return_1_over_n);
 % 9. sharpe ratio
 sharpe_ratio = mean(portfolio_return) / std_deviation;
 sharpe_ratio_ML = mean(portfolio_return_ML) / std_deviation_ML;
-sharpe_ratio_1_over_n = mean(portfolio_return) / std_deviation_1_over_n;
+sharpe_ratio_1_over_n = mean(portfolio_return_1_over_n) / std_deviation_1_over_n;
 
 end
 
